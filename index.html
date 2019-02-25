@@ -1,7 +1,474 @@
 <!DOCTYPE html>
-<html>
-<body>
-<h1>Hello World</h1>
-<p>I'm hosted with GitHub Pages.</p>
+<meta charset="utf-8">
+<style> /* set the CSS */
+
+.selected {
+    background-color: blue;
+}
+
+.line0 {
+    fill: none;
+    stroke: steelblue;
+    stroke-width: 2px;
+}
+
+.line1 {
+    fill: none;
+    stroke: gold;
+    stroke-width: 2px;
+}
+
+.line2 {
+    fill: none;
+    stroke: crimson;
+    stroke-width: 2px;
+}
+
+.line3 {
+    fill: none;
+    stroke: mediumspringgreen;
+    stroke-width: 2px;
+}
+
+.line4 {
+    fill: none;
+    stroke: slategrey;
+    stroke-width: 2px;
+}
+
+.grid line{
+    stroke: lightgrey;
+    stroke-opacity: 0.3;
+    shape-rendering: crispEdges;
+}
+
+div.tooltip {
+    position: absolute;
+    text-align: center;
+    width: 7em;
+    white-space: normal;
+    height: 2em;
+    padding: 2px;
+    font: 12px sans-serif;
+    background: lightsteelblue;
+    border: 0px;
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+</style>
+<body bgcolor="#ffb6c1">
+
+<!-- load the d3.js library -->
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+
+    var count = 0;
+    let currentData = "data.csv";
+    let dataAll = "dataAll.csv";
+
+    // set the dimensions and margins of the graph
+    var margin = {top: 20, right: 20, bottom: 50, left: 70},
+        width = 960 - margin.left - margin.right,
+        height = 500 - margin.top - margin.bottom;
+
+    const svg = d3.select("body").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("id", "graph")
+        .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+
+    // Define the div for the tooltip
+    var div = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+
+    svg.append("text")
+        .attr("x", (width / 2))
+        .attr("y", 5 - (margin.top / 2))
+        .attr("text-anchor", "middle")
+        .style("font-size", "20px")
+        .style("text-decoration", "underline")
+        .text("Average Life Expectancy Based on Sex and Race");
+
+    // gridlines in x axis function
+    function make_x_gridlines() {
+        return d3.axisBottom(x)
+            .ticks(20)
+    }
+
+    // gridlines in y axis function
+    function make_y_gridlines() {
+        return d3.axisLeft(y)
+            .ticks(10)
+    }
+
+    var view = svg.append("rect")
+        .attr("class", "view")
+        .attr("width", width - 1)
+        .attr("height", height - 1);
+
+    // set the ranges
+    var x = d3.scaleTime().range([0, width]);
+    var y = d3.scaleLinear().range([height, 0]);
+
+    // parse the date / time
+    var parseTime = d3.timeParse("%Y");
+
+    function imgselect(x, e) {
+        e = e.parentElement;
+        var all = svg.selectAll("path");
+        let first = document.getElementById("gender");
+        let second = document.getElementById("race");
+        const gender = first.options[(x - 1) % 3];//.selected = true;
+        const race = second.options[((x - 1) / 3) >> 0];//.selected; = true;
+        if (e.classList.contains("selected")) {
+            e.classList.remove("selected");
+            for (var i = 0;i < all._groups[0].length;i++){
+                console.log(all._groups[0][i]);
+                if (all._groups[0][i].getAttribute("value") == (gender.innerHTML + " " + race.innerHTML)){
+                    all._groups[0][i].parentNode.removeChild(all._groups[0][i]);
+                }
+            }
+        } else {
+            gender.selected = true;
+            race.selected = true;
+            e.classList.add("selected");
+            changeData();
+            addPath(currentData);
+        }
+    }
+
+    function changeData()
+    {
+        let first = document.getElementById("gender");
+        let gen = first.options[first.selectedIndex].innerHTML;
+
+        let second = document.getElementById("race");
+        let rac = second.options[second.selectedIndex].innerHTML;
+
+        if (gen == "Both Genders" && rac == "All Races"){
+            currentData = "data.csv"
+        }
+
+        if (gen == "Male" && rac == "All Races"){
+            currentData = "data1.csv"
+        }
+
+        if (gen == "Female" && rac == "All Races"){
+            currentData = "data2.csv"
+        }
+
+        if (gen == "Male" && rac == "White"){
+            currentData = "data3.csv"
+        }
+
+        if (gen == "Female" && rac == "White"){
+            currentData = "data4.csv"
+        }
+
+        if (gen == "Both Genders" && rac == "White"){
+            currentData = "data5.csv"
+        }
+
+        if (gen == "Male" && rac == "Black"){
+            currentData = "data6.csv"
+        }
+
+        if (gen == "Female" && rac == "Black"){
+            currentData = "data7.csv"
+        }
+
+        if (gen == "Both Genders" && rac == "Black"){
+            currentData = "data8.csv"
+        }
+
+        return gen + " " + rac;
+    }
+
+    // text label for the y axis
+    svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 0 - margin.left)
+        .attr("x", 0 - (height / 2))
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .text("Average Life Expectancy in Years");
+
+    // text label for the x axis
+    svg.append("text")
+        .attr("transform",
+            "translate(" + (width / 2) + " ," +
+            (height + margin.top + 20) + ")")
+        .style("text-anchor", "middle")
+        .text("Year");
+
+        d3.csv(dataAll, function (error, data) {
+            if (error) throw error;
+
+            data.forEach(function (d) {
+                d.year = parseTime(d.Year);
+                d.AverageLifeExpectancy = +d.AverageLifeExpectancy;
+            })
+
+            // Scale the range of the data
+            x.domain(d3.extent(data, function (d) {
+                return d.year;
+            }));
+            y.domain(d3.extent(data, function (d) {
+                return d.AverageLifeExpectancy;
+            })).nice();
+
+            // define the line
+            var valueline = d3.line()
+                .x(function(d) {
+                    if (d.Race == "All Races" && d.Sex == "Both Sexes"){
+                    return x(d.year); }})
+                //.y1(d3.max(data, function (d){ return y(d.AverageLifeExpectancy)}))
+                .y(function(d) {
+                    if (d.Race == "All Races" && d.Sex == "Both Sexes"){
+                    return y(d.AverageLifeExpectancy); }});
+
+            const currentText = changeData();
+            svg.append("path")
+                .data([data])
+                .attr("id", "data" + count)
+                .attr("value",currentText)
+                .attr("class", "line" + count)
+                .attr("d", valueline)
+                .on("mouseover", function(d) {
+                    div.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    div	.html(currentText)
+                        .style("left", (d3.event.pageX) + "px")
+                        .style("top", (d3.event.pageY - 28) + "px");
+                })
+                .on("mouseout", function(d) {
+                    div.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                });
+
+            count++;
+
+            // add the X gridlines
+            svg.append("g")
+                .attr("id","xgrid")
+                .attr("class", "grid")
+                .attr("transform", "translate(0," + height + ")")
+                .call(make_x_gridlines()
+                    .tickSize(-height)
+                    .tickFormat("")
+                )
+
+            // add the Y gridlines
+            svg.append("g")
+                .attr("id","ygrid")
+                .attr("class", "grid")
+                .call(make_y_gridlines()
+                    .tickSize(-width)
+                    .tickFormat("")
+                )
+
+            // Add the y Axis
+            svg.append("g")
+                .attr("id", "yScale")
+                .call(d3.axisLeft(y));
+
+            // Add the x Axis
+            svg.append("g")
+                .attr("id", "xScale")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x));
+
+        });
+    var xScale = document.getElementById("xScale");
+    var yScale = document.getElementById("yScale");
+
+    function newPath(currentData){
+        d3.csv(currentData, function (error, data){
+
+            data.forEach(function (d) {
+                d.year = parseTime(d.Year);
+                d.AverageLifeExpectancy = +d.AverageLifeExpectancy;
+            });
+
+            let newLine = d3.line()
+                .x(function(d) { return x(d.year); })
+                //.y1(d3.max(data, function (d){ return y(d.AverageLifeExpectancy)}))
+                .y(function(d) { return y(d.AverageLifeExpectancy); });
+
+            svg.select("#xScale").call(d3.axisBottom(x));
+            svg.select("#yScale").call(d3.axisLeft(y));
+
+            const newText = changeData();
+
+            if (!svg.select("#data0").empty()) {
+                svg.select("#data0")
+                    .datum(data)
+                    .attr("value", newText)
+                    .on("mouseover", function (d) {
+                        div.transition()
+                            .duration(200)
+                            .style("opacity", .9);
+                        div.html(newText)
+                            .style("left", (d3.event.pageX) + "px")
+                            .style("top", (d3.event.pageY - 28) + "px");
+                    })
+                    .on("mouseout", function (d) {
+                        div.transition()
+                            .duration(500)
+                            .style("opacity", 0);
+                    })
+                    .transition()
+                    .duration(1500)
+                    .attr("d", newLine)
+            }
+            else {
+                svg.append("path")
+                    .datum(data)
+                    .attr("value", newText)
+                    .attr("class", "line" + count)
+                    .on("mouseover", function (d) {
+                        div.transition()
+                            .duration(200)
+                            .style("opacity", .9);
+                        div.html(newText)
+                            .style("left", (d3.event.pageX) + "px")
+                            .style("top", (d3.event.pageY - 28) + "px");
+                    })
+                    .on("mouseout", function (d) {
+                        div.transition()
+                            .duration(500)
+                            .style("opacity", 0);
+                    })
+                    //.transition()
+                    //.duration(1500)
+                    .attr("d", newLine)
+                    .attr("id", "data0")
+                count++;
+            }
+        })
+    }
+
+    function addPath(currentData){
+    d3.csv(currentData, function (error, data){
+
+        data.forEach(function (d) {
+            d.year = parseTime(d.Year);
+            d.AverageLifeExpectancy = +d.AverageLifeExpectancy;
+        });
+
+        var newLine = d3.line()
+            .x(function(d) { return x(d.year); })
+            //.y1(d3.max(data, function (d){ return y(d.AverageLifeExpectancy)}))
+            .y(function(d) { return y(d.AverageLifeExpectancy); });
+
+        const newestText = changeData();
+
+        svg.append("path")
+            .datum(data)
+            .attr("id", "data" + (count % 5))
+            .attr("class", "line" + (count % 5))
+            .attr("value",newestText)
+            .attr("d", newLine)
+            .on("mouseover", function(d) {
+                div.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                div	.html(newestText)
+                    .style("left", (d3.event.pageX) + "px")
+                    .style("top", (d3.event.pageY - 28) + "px");
+            })
+            .on("mouseout", function(d) {
+                div.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            });
+
+        count++;
+
+    })
+    }
+
+    function clearPath(count){
+        var dead;
+        for (var i = 0; i < count;i++) {
+            dead = document.getElementById("data" + (i % 5));
+            if (dead){
+                d3.select(dead).remove();
+                //dead.parentNode.removeChild(dead);
+            }
+        }
+        count = 0;
+        var table = document.getElementById("tableselect");
+        for (let i = 0; i < table.rows.length; i++) {
+            for (let j = 0; j < table.rows[i].cells.length; j++) {
+                table.rows[i].cells[j].classList.remove("selected");
+            }
+        }
+    }
+
+</script>
+
+<div style ="width:900px;height:600px;float:right">
+    <table id = "tableselect" style ="height:450px;width:900px" border = 2 bordercolor = black align = center>
+        <tr>
+            <th>  </th>
+            <th>Average of Genders</th>
+            <th>Male</th>
+            <th height ="10%">Female</th>
+        </tr>
+        <tr>
+            <td height ="30%" width ="10%"><strong>Average of Races</strong></td>
+            <td class="selected" width ="30%" height ="30%"  align="center"><img src = "imgs/avgall.png" height = "90" width = "140" onclick = "imgselect(1, this)"></td>
+            <td width ="30%" align="center"><img src = "imgs/avgmale.png" height = "100" width = "100" onclick = "imgselect(2, this)"></td>
+            <td width ="30%" align="center"><img src = "imgs/avgfemale.png" height = "100" width = "100" onclick = "imgselect(3, this)"></td>
+        </tr>
+        <tr>
+            <td height ="30%"><strong>White</strong></td>
+            <td height ="30%"  align="center"><img src = "imgs/mfwhite.png" height = "90" width = "140" onclick = "imgselect(4, this)"></td>
+            <td align="center"><img src = "imgs/malewhite.png" height = "100" width = "100" onclick = "imgselect(5, this)"></td>
+            <td align="center"><img src = "imgs/femalewhite.png" height = "100" width = "100" onclick = "imgselect(6, this)"></td>
+        </tr>
+        <tr>
+            <td><strong>Black</strong></td>
+            <td align="center"><img src = "imgs/malefemale.png" height = "90" width = "140" onclick = "imgselect(7, this)"></td>
+            <td height ="30%" align="center"><img src = "imgs/malesymbol.png" height = "100" width = "100" onclick = "imgselect(8, this)"></td>
+            <td align = "center"><img src = "imgs/female.png" height = "100" width = "100" onclick = "imgselect(9, this)"></td>
+        </tr>
+    </table>
+</div>
+
+<div id = "interface">
+
+    <select id = "gender">
+        <option selected = "selected">Both Genders</option>
+        <option>Male</option>
+        <option>Female</option>
+    </select>
+
+    <select id = "race">
+        <option selected = "selected">All Races</option>
+        <option>White</option>
+        <option>Black</option>
+    </select>
+
+    <button type="button" onclick="changeData(),newPath(currentData)">Update</button>
+    <button type="button" onclick="changeData(),addPath(currentData)">Compare</button>
+    <button type="button" onclick="clearPath(count), count = 1">Clear</button>
+</div>
+<div>
+    <br>
+    <strong>Drop Downs</strong>
+    <p>These drop downs allow you to select which gender or race you would like to display on the graph.</p>
+    <p>By default, the average of all races and genders will be shown.</p>
+    <strong>Buttons</strong>
+    <p>Pressing the Update button after selecting a new choice from the dropdown transitions from one selection to another</p>
+    <p>The Compare button adds a new line graph, based on your current selection, for easy viewing and comparing of data.</p>
+    <p>The Clear button erases all lines except the original graphs.
+</div>
 </body>
-</html>
